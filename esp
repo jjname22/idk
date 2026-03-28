@@ -1,0 +1,62 @@
+-- tabs/esp
+local module = {}
+
+function module.init(tab, env)
+    local espLibrary = env.espLibrary
+    local playerESP  = espLibrary.playerESP
+    local Players    = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+
+    local settings = {
+        enabled     = false,
+        box         = true,
+        name        = true,
+        distance    = true,
+        healthbar   = true,
+        weapon      = false,
+        maxDistance = 1000,
+    }
+
+    local function addPlayer(p)
+        if p ~= Players.LocalPlayer then playerESP.new(p) end
+    end
+    for _, p in Players:GetPlayers() do addPlayer(p) end
+    Players.PlayerAdded:Connect(addPlayer)
+    Players.PlayerRemoving:Connect(function(p) playerESP.remove(p) end)
+
+    RunService.RenderStepped:Connect(function()
+        if not settings.enabled then return end
+        local camPos = workspace.CurrentCamera.CFrame.Position
+        for _, esp in playerESP.playerCache do
+            if esp.current and esp.current.active then
+                local dist = (camPos - esp.current.rootPart.Position).Magnitude
+                if dist <= settings.maxDistance then
+                    esp:loop(settings, dist)
+                else
+                    esp:hideDrawings()
+                end
+            end
+        end
+    end)
+
+    tab:NewToggle("Enable ESP", false, function(s)
+        settings.enabled = s
+        if not s then
+            for _, esp in playerESP.playerCache do esp:hideDrawings() end
+        end
+    end)
+    tab:NewSeperator()
+    tab:NewSection("Components")
+    tab:NewToggle("Box",        true,  function(s) settings.box       = s end)
+    tab:NewToggle("Name",       true,  function(s) settings.name      = s end)
+    tab:NewToggle("Distance",   true,  function(s) settings.distance  = s end)
+    tab:NewToggle("Health Bar", true,  function(s) settings.healthbar = s end)
+    tab:NewToggle("Weapon",     false, function(s) settings.weapon    = s end)
+    tab:NewSeperator()
+    tab:NewSection("Settings")
+    tab:NewSlider("Max Distance", " studs", false, "/", {
+        min = 100, max = 2000, default = 1000
+    }, function(v) settings.maxDistance = v end)
+end
+
+return module
