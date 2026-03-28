@@ -1,0 +1,104 @@
+-- tabs/misc
+local module = {}
+
+function module.init(tab, env)
+    local Players    = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local lp         = Players.LocalPlayer
+    local library    = env.library
+
+    local settings = {
+        noclip      = false,
+        speedhack   = false,
+        speed       = 16,
+        infstamina  = false,
+        bunnyhop    = false,
+        fullbright  = false,
+    }
+
+    -- Noclip
+    RunService.Stepped:Connect(function()
+        if not settings.noclip then return end
+        local char = lp.Character
+        if not char then return end
+        for _, part in char:GetDescendants() do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end)
+
+    -- Speed
+    RunService.Heartbeat:Connect(function()
+        local char = lp.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+
+        if settings.speedhack then
+            hum.WalkSpeed = settings.speed
+        end
+        if settings.infstamina then
+            local stamina = char:FindFirstChild("Stamina") or lp:FindFirstChild("Stamina")
+            if stamina and stamina:IsA("NumberValue") then
+                stamina.Value = stamina.MaxValue or 100
+            end
+        end
+    end)
+
+    -- Bunny hop
+    local UIS = game:GetService("UserInputService")
+    UIS.JumpRequest:Connect(function()
+        if not settings.bunnyhop then return end
+        local char = lp.Character
+        if not char then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end)
+
+    -- Fullbright
+    local lighting = game:GetService("Lighting")
+    local origBrightness = lighting.Brightness
+    local origAmbient    = lighting.Ambient
+
+    tab:NewSection("Movement")
+    tab:NewToggle("No Clip", false, function(s) settings.noclip = s end)
+    tab:NewToggle("Speed Hack", false, function(s)
+        settings.speedhack = s
+        if not s then
+            local char = lp.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.WalkSpeed = 16 end
+            end
+        end
+    end)
+    tab:NewSlider("Walk Speed", " ws", false, "/", {
+        min = 16, max = 150, default = 16
+    }, function(v) settings.speed = v end)
+    tab:NewToggle("Bunny Hop", false, function(s) settings.bunnyhop = s end)
+    tab:NewSeperator()
+    tab:NewSection("Player")
+    tab:NewToggle("Infinite Stamina", false, function(s) settings.infstamina = s end)
+    tab:NewToggle("Fullbright", false, function(s)
+        settings.fullbright = s
+        if s then
+            lighting.Brightness = 2
+            lighting.Ambient    = Color3.fromRGB(255, 255, 255)
+        else
+            lighting.Brightness = origBrightness
+            lighting.Ambient    = origAmbient
+        end
+    end)
+    tab:NewSeperator()
+    tab:NewSection("Utils")
+    tab:NewButton("Rejoin", function()
+        library:Rejoin()
+    end)
+    tab:NewButton("Copy HWID", function()
+        library:Copy(env.hwid)
+        library:Notify("HWID copied", 2, "success")
+    end)
+end
+
+return module
