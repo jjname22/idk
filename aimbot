@@ -1,0 +1,127 @@
+-- tabs/aimbot
+local module = {}
+
+function module.init(tab, env)
+    local Players    = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UIS        = game:GetService("UserInputService")
+    local camera     = workspace.CurrentCamera
+
+    local settings = {
+        enabled     = false,
+        smoothness  = 0.2,
+        fov         = 120,
+        hitpart     = "Head",
+        teamcheck   = true,
+        vischeck    = false,
+        triggerbot  = false,
+    }
+
+    local fovCircle = Drawing.new("Circle")
+    fovCircle.Visible   = false
+    fovCircle.Thickness = 1
+    fovCircle.Color     = Color3.fromRGB(255, 255, 255)
+    fovCircle.Filled    = false
+    fovCircle.NumSides  = 64
+    fovCircle.Radius    = settings.fov
+    fovCircle.Position  = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+    local function isTeammate(player)
+        if not settings.teamcheck then return false end
+        local lp = Players.LocalPlayer
+        return lp.Team and player.Team and lp.Team == player.Team
+    end
+
+    local function isVisible(part)
+        if not settings.vischeck then return true end
+        local origin = camera.CFrame.Position
+        local ray = Ray.new(origin, (part.Position - origin).Unit * 1000)
+        local hit = workspace:FindPartOnRayWithIgnoreList(ray, {Players.LocalPlayer.Character})
+        return hit and hit:IsDescendantOf(part.Parent)
+    end
+
+    local function getClosestPlayer()
+        local center  = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+        local closest, closestDist = nil, math.huge
+
+        for _, player in Players:GetPlayers() do
+            if player == Players.LocalPlayer then continue end
+            if isTeammate(player) then continue end
+            local char = player.Character
+            if not char then continue end
+            local part = char:FindFirstChild(settings.hitpart) or char:FindFirstChild("HumanoidRootPart")
+            if not part then continue end
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if not humanoid or humanoid.Health <= 0 then continue end
+
+            local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+            if not onScreen then continue end
+
+            local pos2d = Vector2.new(screenPos.X, screenPos.Y)
+            local dist  = (pos2d - center).Magnitude
+
+            if dist < settings.fov and dist < closestDist then
+                if isVisible(part) then
+                    closest     = part
+                    closestDist = dist
+                end
+            end
+        end
+
+        return closest
+    end
+
+    RunService.RenderStepped:Connect(function()
+        fovCircle.Position = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+        fovCircle.Radius   = settings.fov
+
+        if not settings.enabled then return end
+        local target = getClosestPlayer()
+        if not target then return end
+
+        if UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            local targetPos = camera:WorldToViewportPoint(target.Position)
+            local current   = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+            local goal      = Vector2.new(targetPos.X, targetPos.Y)
+            local lerped    = current:Lerp(goal, settings.smoothness)
+
+            local delta = lerped - current
+            mousemoverel(delta.X, delta.Y)
+
+            if settings.triggerbot then
+                local ray = Ray.new(camera.CFrame.Position, camera.CFrame.LookVector * 1000)
+                local hit = workspace:FindPartOnRayWithIgnoreList(ray, {Players.LocalPlayer.Character})
+                if hit and hit:IsDescendantOf(target.Parent) then
+                    mouse1click()
+                end
+            end
+        end
+    end)
+
+    tab:NewToggle("Enable Aimbot", false, function(s)
+        settings.enabled    = s
+        fovCircle.Visible   = s
+    end)
+    tab:NewSeperator()
+    tab:NewSection("Targeting")
+    tab:NewSelector("Hit Part", "Head", {"Head", "HumanoidRootPart", "UpperTorso"}, function(v)
+        settings.hitpart = v
+    end)
+    tab:NewToggle("Team Check",      true,  function(s) settings.teamcheck  = s end)
+    tab:NewToggle("Visibility Check",false, function(s) settings.vischeck   = s end)
+    tab:NewToggle("Triggerbot",      false, function(s) settings.triggerbot = s end)
+    tab:NewSeperator()
+    tab:NewSection("Smoothness")
+    tab:NewSlider("Smoothness", "", false, "/", {
+        min = 1, max = 20, default = 2
+    }, function(v)
+        settings.smoothness = v / 10
+    end)
+    tab:NewSlider("FOV Radius", " px", false, "/", {
+        min = 20, max = 400, default = 120
+    }, function(v)
+        settings.fov = v
+    end)
+end
+
+return module
