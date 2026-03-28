@@ -1,0 +1,56 @@
+-- tabs/settings
+local module = {}
+
+function module.init(tab, env)
+    local library = env.library
+    local TweenService = game:GetService("TweenService")
+
+    tab:NewSection("Interface")
+
+    tab:NewToggle("Rainbow Bar", true, function(s)
+        library.RainbowEnabled = s
+    end)
+
+    tab:NewToggle("Blur Effect", true, function(s)
+        library.BlurEffect = s
+    end)
+
+    tab:NewSlider("Blur Size", "", false, "/", {
+        min = 0, max = 48, default = 24
+    }, function(v)
+        library.BlurSize = v
+    end)
+
+    tab:NewSeperator()
+    tab:NewSection("Keybind")
+
+    tab:NewSelector("Toggle Key", "RightShift", {
+        "RightShift", "Insert", "Home", "Delete", "F1", "F2", "F3", "F4",
+    }, function(v)
+        local key = Enum.KeyCode[v]
+        if key then library:SetKeybind(key) end
+    end)
+
+    tab:NewSeperator()
+    tab:NewSection("Performance")
+
+    tab:NewSlider("FPS Cap", " fps", false, "/", {
+        min = 30, max = 240, default = 60
+    }, function(v)
+        library:UnlockFps(v)
+    end)
+
+    tab:NewSeperator()
+    tab:NewSection("Danger Zone")
+
+    tab:NewButton("Panic (reset all toggles)", function()
+        library:Panic()
+        library:Notify("all toggles reset", 3, "alert")
+    end)
+
+    tab:NewButton("Close UI", function()
+        library:ShowUI(false)
+    end)
+end
+
+return module
