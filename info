@@ -1,0 +1,25 @@
+-- tabs/info
+local module = {}
+
+function module.init(tab, env)
+    local Players  = game:GetService("Players")
+    local lp       = Players.LocalPlayer
+    local library  = env.library
+
+    tab:NewSection("License")
+    tab:NewLabel("key: " .. (env.key or "unknown"), "left")
+    tab:NewLabel("hwid: " .. env.hwid:sub(1, 24) .. "...", "left")
+    tab:NewLabel("expires: " .. (env.expiry or "unknown"), "left")
+    tab:NewSeperator()
+    tab:NewSection("Session")
+    tab:NewLabel("user: " .. lp.Name, "left")
+    tab:NewLabel("place id: " .. game.PlaceId, "left")
+    tab:NewLabel("job id: " .. game.JobId:sub(1, 18) .. "...", "left")
+    tab:NewSeperator()
+    tab:NewSection("Credits")
+    tab:NewLabel("ui: depso", "left")
+    tab:NewLabel("esp: mainstream", "left")
+    tab:NewLabel("cheat: " .. lp.Name, "left")
+end
+
+return module
